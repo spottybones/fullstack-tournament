@@ -30,7 +30,7 @@ def countPlayers():
     c = db.cursor()
     c.execute('select count(*) from players')
     count = c.fetchone()[0]
-    c.close()
+    db.close()
     return count
 
 
@@ -48,7 +48,7 @@ def registerPlayer(name):
     c.execute('insert into players (name) values (%(name)s)',
               {'name': name})
     db.commit()
-    c.close()
+    db.close()
 
 
 def playerStandings():
