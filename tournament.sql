@@ -28,14 +28,15 @@ CREATE TABLE matches (
 -- create the standings view
 DROP VIEW IF EXISTS standings;
 CREATE VIEW standings AS
-SELECT p.id, p.name, SUM(COALESCE(r.win, 0)) AS wins, SUM(COALESCE(r.match, 0)) AS matches
-FROM players p LEFT JOIN
- (
-  SELECT winner AS player_id, 1 AS win, 1 AS match FROM matches
-  UNION ALL
-  SELECT loser AS player_id, 0 AS win, 1 AS match FROM matches
-) AS r
-ON p.id = r.player_id
-GROUP BY p.id, p.name
+SELECT p.id, p.name,
+  COALESCE(w.wins,0) AS wins,
+  COALESCE(w.wins,0) + COALESCE(l.losses,0) AS matches
+FROM players p
+  LEFT JOIN (
+    SELECT winner, COUNT(winner) AS wins FROM matches GROUP BY winner
+  ) AS w ON p.id = w.winner
+  LEFT JOIN (
+    SELECT loser, COUNT(loser) AS losses FROM matches GROUP BY loser
+  ) AS l ON p.id = l.loser
 ORDER BY wins DESC
 ;
