@@ -9,5 +9,6 @@
 -- create the 'players' table
 drop table if exists players;
 create table players (
-  id serial
+  id serial,
+  name text
 );
