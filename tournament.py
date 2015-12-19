@@ -107,3 +107,23 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+    db = connect()
+    c = db.cursor()
+    c.execute("""
+        SELECT p1.id AS id1, p1.name AS name1, p2.id AS id2, p2.name AS name2
+        FROM standings p1, standings p2
+        WHERE p1.wins = p2.wins AND p1.id < p2.id
+    """)
+
+    # NOTE: we keep track of matched players in order to prevent multiple
+    # pairings for the same player in tournaments of more than four players
+    matched = []
+    result = []
+    for (id1, name1, id2, name2) in c.fetchall():
+        if (id1 not in matched) and (id2 not in matched):
+            matched.append(id1)
+            matched.append(id2)
+            result.append((id1, name1, id2, name2))
+
+    db.close()
+    return result
