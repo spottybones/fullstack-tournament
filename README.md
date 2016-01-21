@@ -3,7 +3,7 @@ v1.0 January 19, 2016
 
 ## Description ##
 
-This package provides a library of Python functions that can be used to
+This module provides a library of Python functions that can be used to
 implement a simple [Swiss-system tournament][1].
 
 ## Requirements ##
@@ -18,15 +18,14 @@ This library requires that the following components be installed:
 
 The following files are included with this library:
 
-* `tournament.py` - this file contains functions that are called to register
-  players in a tournament, record the results of matches played, and return player
-  standings.
+* `tournament.py` - this file contains functions used to register players in a
+  tournament, record results of matches played, and report player standings.
 
 * `tournament_test.py` - a script that runs a series of tests to confirm that
-  basically functionality is implemented by the tournament.py functions.
+  basic functionality is correctly implemented by the `tournament.py` library.
 
 * `tournament.sql` - a SQL data definition language script that will initialize
-  tables and views used to persist tournament data.
+  tables and views used by the library to persist tournament data.
 
 ## Installation ##
 
@@ -42,7 +41,8 @@ Perform the following steps to install this software:
    to a directory on your system, or download the zip file and unzip it into an
    empty directory.
 
-3. Change your working directory to the location of the tournament library files.
+3. Change your working directory to the location of the tournament library
+   file.
 
 4. Create a new PostgreSQL database using the following command at a shell
    prompt:
