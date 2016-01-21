@@ -3,6 +3,7 @@
 # Test cases for tournament.py
 
 from tournament import *
+from random import random
 
 def testDeleteMatches():
     deleteMatches()
@@ -125,6 +126,31 @@ def testPairings():
     print "8. After one match, players with one win are paired."
 
 
+def testPreventRematches():
+    deleteMatches()
+    deletePlayers()
+    for player in ["Alice", "Bob", "Charles", "David", "Ellen", "Fawn",
+                    "Gareth", "Hope"]:
+        registerPlayer(player)
+    matches_played = []
+
+    for round in range(3):
+        pairings = swissPairings()
+        # print pairings
+        for match in pairings:
+            if (match[0], match[2]) in matches_played:
+                raise ValueError(
+                    "Match Already Played!")
+            if random() > 0.5:
+                reportMatch(match[0], match[2])
+            else:
+                reportMatch(match[2], match[0])
+            matches_played.append((match[0], match[2]))
+        # print playerStandings()
+
+    print "9. Rematches between players are prevented."
+
+
 if __name__ == '__main__':
     testDeleteMatches()
     testDelete()
@@ -134,6 +160,5 @@ if __name__ == '__main__':
     testStandingsBeforeMatches()
     testReportMatches()
     testPairings()
+    testPreventRematches()
     print "Success!  All tests pass!"
-
-

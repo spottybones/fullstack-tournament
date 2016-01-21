@@ -38,5 +38,5 @@ FROM players p
   LEFT JOIN (
     SELECT loser, COUNT(loser) AS losses FROM matches GROUP BY loser
   ) AS l ON p.id = l.loser
-ORDER BY wins DESC
+ORDER BY wins DESC, p.id
 ;

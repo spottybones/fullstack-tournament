@@ -107,11 +107,46 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+
+    # Load a list of matches already played. this list will be used to check
+    # each pairing generated to see if it's been already played.
+    db = connect()
+    c = db.cursor()
+    c.execute('select * from matches')
+    matches_played = []
+    for winner, loser in c.fetchall():
+        matches_played.append(set([winner, loser]))
+    db.close()
+
+    # To generate pairings get the list of players from the playerStandings()
+    # function and compare pairs by pulling two players from the list and
+    # checking to see if they have already played. If not they are added to the
+    # list of pairings to be returned. It they have played before then player2
+    # is put on a stack and will be called for a future pairing.
     standings = playerStandings()
+    previously_matched = []
     pairings = []
     while standings:
         player1 = standings.pop(0)
         player2 = standings.pop(0)
-        pairings.append((player1[0], player1[1], player2[0], player2[1]))
+
+        # check to see if this pair has already played. If so put player2 on
+        # a temporary stack and get and test the next player
+        while True:
+            if set([player1[0], player2[0]]) in matches_played:
+                # this pair has already played, move player2 to the
+                # previously_matched list and get the next player from the
+                # standings list and retest
+                previously_matched.append(player2)
+                player2 = standings.pop(0)
+            else:
+                # these players haven't played, set the match
+                pairings.append((player1[0], player1[1], player2[0], player2[1]))
+                break
+
+        # return any players set aside in the previously_matched list back to
+        # the standings list
+        while previously_matched:
+            standings.insert(0, previously_matched.pop())
 
     return pairings
