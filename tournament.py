@@ -4,7 +4,7 @@
 #
 
 import psycopg2
-
+from itertools import combinations
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
@@ -113,9 +113,9 @@ def swissPairings():
     db = connect()
     c = db.cursor()
     c.execute('select * from matches')
-    matches_played = []
-    for winner, loser in c.fetchall():
-        matches_played.append(set([winner, loser]))
+    already_matched = []
+    for winner_id, loser_id in c.fetchall():
+        already_matched.append(set([winner_id, loser_id]))
     db.close()
 
     # To generate pairings get the list of players from the playerStandings()
@@ -123,30 +123,24 @@ def swissPairings():
     # checking to see if they have already played. If not they are added to the
     # list of pairings to be returned. It they have played before then player2
     # is put on a stack and will be called for a future pairing.
-    standings = playerStandings()
-    previously_matched = []
+    matched = []
     pairings = []
-    while standings:
-        player1 = standings.pop(0)
-        player2 = standings.pop(0)
 
-        # check to see if this pair has already played. If so put player2 on
-        # a temporary stack and get and test the next player
-        while True:
-            if set([player1[0], player2[0]]) in matches_played:
-                # this pair has already played, move player2 to the
-                # previously_matched list and get the next player from the
-                # standings list and retest
-                previously_matched.append(player2)
-                player2 = standings.pop(0)
-            else:
-                # these players haven't played, set the match
-                pairings.append((player1[0], player1[1], player2[0], player2[1]))
-                break
-
-        # return any players set aside in the previously_matched list back to
-        # the standings list
-        while previously_matched:
-            standings.insert(0, previously_matched.pop())
+    # iterate through potential_matches. if the match hasn't already been played
+    # add it to both the pairings list and add the set of player IDs to the
+    # already_matched list
+    for match in combinations(playerStandings(), 2):
+        # if these players haven't already played, add them to the pairings list
+        # and the already_matched list.
+        match_set = set([match[0][0], match[1][0]])
+        if match_set in already_matched:
+            continue
+        elif match[0][0] in matched:
+            continue
+        elif match[0][1] in matched:
+            continue
+        else:
+            pairings.append((match[0][0], match[0][1], match[1][0], match[1][1]))
+            matched += [match[0][0], match[1][0]]
 
     return pairings
