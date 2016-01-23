@@ -6,18 +6,20 @@
 -- You can write comments in this file by starting them with two dashes, like
 -- these lines here.
 
+-- create a new 'tournament' database, dropping the old one if it exists
+DROP DATABASE IF EXISTS tournament;
+CREATE DATABASE tournament;
+
 -- ensure we're connected to the 'tournament' database
 \c tournament;
 
 -- create the 'players' table
-DROP TABLE IF EXISTS players CASCADE;
 create table players (
   id SERIAL PRIMARY KEY,
   name text
 );
 
 -- create the 'matches' table
-DROP TABLE IF EXISTS matches CASCADE;
 CREATE TABLE matches (
   winner int REFERENCES players (id),
   loser int REFERENCES players (id),
@@ -26,7 +28,6 @@ CREATE TABLE matches (
 );
 
 -- create the standings view
-DROP VIEW IF EXISTS standings;
 CREATE VIEW standings AS
 SELECT p.id, p.name,
   COALESCE(w.wins,0) AS wins,
