@@ -27,6 +27,45 @@ class Player():
         return("{x.name} ({x.wins} / {x.played})".format(x=self))
 
 
+class DB:
+    def __init__(self, db_con_str="dbname=tournament"):
+        """
+        Creates a database connection with the connection string provided
+        :param str db_con_str: Contains the database connection string, with
+           a default value when no argument is passed to the parameter
+        """
+        self.conn = psycopg2.connect(db_con_str)
+
+    def cursor(self):
+        """
+        Returns the current cursor of the database
+        """
+        return self.conn.cursor()
+
+    def execute(self, sql_query, and_close=False):
+        """
+        Executes SQL Queries
+        :param tuple sql_query: A one or two element tuple; the first element is
+            required and contains a string with the SQL query option; the second
+            is optional and contains parameters to be substituted, after
+            sanitation, if specified in the query
+        :param bool and_close: If true, closes the database connection after
+            executing and commiting the SQL query
+        """
+        cursor = self.cursor()
+        cursor.execute(*sql_query)
+        if and_close:
+            self.conn.commit()
+            self.close()
+        return {"conn": self.conn, "cursor": cursor if not and_close else None}
+
+    def close(self):
+        """
+        Closes the current database connection
+        """
+        self.conn.close()
+
+
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
     return psycopg2.connect("dbname=tournament")
@@ -34,30 +73,20 @@ def connect():
 
 def deleteMatches():
     """Remove all the match records from the database."""
-    db = connect()
-    c = db.cursor()
-    c.execute('delete from matches')
-    db.commit()
-    db.close()
+    DB().execute(('delete from matches',), True)
 
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    db = connect()
-    c = db.cursor()
-    c.execute('delete from players')
-    db.commit()
-    db.close()
+    DB().execute(('delete from players',), True)
 
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    db = connect()
-    c = db.cursor()
-    c.execute('select count(*) from players')
-    count = c.fetchone()[0]
-    db.close()
-    return count
+    conn = DB().execute(('select count(*) from players',))
+    player_count = conn['cursor'].fetchone()
+    conn['cursor'].close()
+    return player_count[0]
 
 
 def registerPlayer(name):
@@ -69,12 +98,8 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
-    db = connect()
-    c = db.cursor()
-    c.execute('insert into players (name) values (%(name)s)',
-              {'name': name})
-    db.commit()
-    db.close()
+    DB().execute(('insert into players (name) values (%(name)s)',
+                  {'name': name}), True)
 
 
 def playerStandings():
@@ -90,11 +115,9 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-    db = connect()
-    c = db.cursor()
-    c.execute('select * from standings')
-    standings = c.fetchall()
-    db.close()
+    conn = DB().execute(('select * from standings',))
+    standings = conn['cursor'].fetchall()
+    conn['cursor'].close()
     return standings
 
 
@@ -105,12 +128,8 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
-    db = connect()
-    c = db.cursor()
-    c.execute('insert into matches values (%(winner)s, %(loser)s)',
-              {'winner': winner, 'loser': loser})
-    db.commit()
-    db.close()
+    DB().execute(('insert into matches values (%(winner)s, %(loser)s)',
+                  {'winner': winner, 'loser': loser}), True)
 
 
 def swissPairings():
@@ -131,13 +150,12 @@ def swissPairings():
 
     # Load a list of matches played in previous rounds. This list will be used
     # to check each pairing proposed for the current round to prevent rematches.
-    db = connect()
-    c = db.cursor()
-    c.execute('select * from matches')
+    conn = DB().execute(('select * from matches',))
+    matches = conn['cursor'].fetchall()
+    conn['cursor'].close()
     previously_matched = []
-    for winner_id, loser_id in c.fetchall():
+    for winner_id, loser_id in matches:
         previously_matched.append(set([winner_id, loser_id]))
-    db.close()
 
     # To generate pairings get the list of players from the playerStandings()
     # function and split them into groups based on the number of wins. The list
