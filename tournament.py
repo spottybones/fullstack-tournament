@@ -4,7 +4,28 @@
 #
 
 import psycopg2
-from itertools import combinations
+import itertools
+import random
+
+
+class Player():
+    """Object representation of a Player
+
+    Attributes:
+     - id
+     - name
+     - wins: matches won
+     - played: matches played
+    """
+    def __init__(self, id, name, wins=0, played=0):
+        self.id             = id
+        self.name           = name
+        self.wins           = wins
+        self.played         = played
+
+    def __str__(self):
+        return("{x.name} ({x.wins} / {x.played})".format(x=self))
+
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
@@ -108,39 +129,65 @@ def swissPairings():
         name2: the second player's name
     """
 
-    # Load a list of matches already played. this list will be used to check
-    # each pairing generated to see if it's been already played.
+    # Load a list of matches played in previous rounds. This list will be used
+    # to check each pairing proposed for the current round to prevent rematches.
     db = connect()
     c = db.cursor()
     c.execute('select * from matches')
-    already_matched = []
+    previously_matched = []
     for winner_id, loser_id in c.fetchall():
-        already_matched.append(set([winner_id, loser_id]))
+        previously_matched.append(set([winner_id, loser_id]))
     db.close()
 
     # To generate pairings get the list of players from the playerStandings()
-    # function and compare pairs by pulling two players from the list and
-    # checking to see if they have already played. If not they are added to the
-    # list of pairings to be returned. It they have played before then player2
-    # is put on a stack and will be called for a future pairing.
-    matched = []
-    pairings = []
+    # function and split them into groups based on the number of wins. The list
+    # of players in each group is then shuffled randomly and pairings are
+    # attempted in order, skipping any pairs that have already played. If a pair
+    # is skipped the group is reshuffled and pairing is attempted again.
 
-    # iterate through potential_matches. if the match hasn't already been played
-    # add it to both the pairings list and add the set of player IDs to the
-    # already_matched list
-    for match in combinations(playerStandings(), 2):
-        # if these players haven't already played, add them to the pairings list
-        # and the already_matched list.
-        match_set = set([match[0][0], match[1][0]])
-        if match_set in already_matched:
-            continue
-        elif match[0][0] in matched:
-            continue
-        elif match[0][1] in matched:
-            continue
+    def by_wins(player):
+        # Utility function used by itertools.groupby to generate lists of
+        # Players grouped by number of wins.
+        return player.wins
+
+    def next_pair(players):
+        # An iterator that will return pairs of elements from a list
+        # in order. If returns an empty list of passed a list with an odd
+        # number of elements
+        if len(players) % 2:
+            yield []
         else:
-            pairings.append((match[0][0], match[0][1], match[1][0], match[1][1]))
-            matched += [match[0][0], match[1][0]]
+            i = 0
+            while i < len(players):
+                yield players[i:i + 2]
+                i += 2
 
-    return pairings
+    # Generate a list of Player objects from the list returned by
+    # playerStandings().
+    players = [Player(*args)
+               for args in playerStandings()]
+
+    round_pairings = []
+    for group in itertools.groupby(players, by_wins):
+        # Iterate through groups created based on number of player wins
+        group_players = [group_player for group_player in group[1]]
+        while True:
+            # shuffle the groups players and start pulling pairs to match up
+            random.shuffle(group_players)
+            group_pairings = []
+            for player1, player2 in next_pair(group_players):
+                if set([player1.id, player2.id]) not in previously_matched:
+                    # If the pair hasn't played before, add them to the list of
+                    # group pairings and get the next pair.
+                    group_pairings.append((player1.id, player1.name,
+                                           player2.id, player2.name))
+
+            if len(group_pairings) == len(group_players) / 2:
+                # If every group player has been successfully matched, add the
+                # group pairings to the round pairings and go to the next group.
+                # Otherwise we'll reshuffle the group players and attempt
+                # another pairing.
+                round_pairings = round_pairings + group_pairings
+                break
+
+    return round_pairings
