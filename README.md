@@ -44,14 +44,7 @@ Perform the following steps to install this software:
 3. Change your working directory to the location of the tournament library
    file.
 
-4. Create a new PostgreSQL database using the following command at a shell
-   prompt:
-
-   ```
-   createdb tournament
-   ```
-
-5. Initialize the `tournament` database by entering the following at the shell
+4. Initialize the `tournament` database by entering the following at the shell
    prompt:
 
    ```
